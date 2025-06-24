@@ -55,7 +55,7 @@ func main() {
 
 	streamTest := NewStream(x).Map(func(i int) int {
 		return i + 1
-	}).ToStrings().MapAny(strconv.Atoi, Stream[int]{}).(Stream[int]).Reverse()
+	}).ToStrings().MapAny(strconv.Atoi, Stream[int]{}).(Stream[int]).Reverse().ToAny(Stream[int]{}).(Stream[int])
 
 	fmt.Println(streamTest.ToString())
 
@@ -140,7 +140,7 @@ func (s Stream[T]) First() T {
 	return s.Slice()[0]
 }
 
-func (s Stream[T]) Last() T{
+func (s Stream[T]) Last() T {
 	return s.Slice()[len(s)-1]
 }
 
@@ -186,6 +186,8 @@ func (s Stream[T]) FlatMap(fn func(T) []T) Stream[T] {
 type AnyStream interface {
 	MapAny(function interface{}, returnStreamType AnyStream) AnyStream
 	FlatMapAny(function interface{}) AnyStream
+	ToAny(returnStreamType AnyStream) AnyStream
+	sealed()
 }
 
 /*
@@ -224,13 +226,20 @@ func (s Stream[T]) FlatMapAny /*[X any]*/ (function interface { /* func(T)Stream
 	return result.Convert(streamType).Interface().(AnyStream)
 }
 
+func (s Stream[T]) ToAny /*[X any]*/ (
+	returnStreamType AnyStream /* Stream[X] */) AnyStream {
+	return reflect.ValueOf(s.Slice()).Convert(reflect.TypeOf(returnStreamType)).Interface().(AnyStream)
+}
+
+func (s Stream[T]) sealed() {}
+
 /* returns the underlying slice */
 func (s Stream[T]) Slice() []T {
 	return s
 }
 
 /* returns identity */
-func (s Stream[T]) Strea() Stream[T] {
+func (s Stream[T]) Stream() Stream[T] {
 	return s
 }
 
