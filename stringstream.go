@@ -4,35 +4,36 @@ import "strings"
 
 type StringStream []string
 
-func NewStringStream[T string|[]string|Stream[string]](s T)StringStream{
-  switch v:=any(s).(type){
-  case string:
-      return StringStream(strings.Split(v,""))
-  case []string:
-      return StringStream(v)
-  case Stream[string]:
-      return StringStream(v.Slice())
-  }
-  return any(s).(StringStream)
+func NewStringStream[T string | []string | Stream[string]](s T) StringStream {
+	switch v := any(s).(type) {
+	case string:
+		return StringStream(strings.Split(v, ""))
+	case []string:
+		return StringStream(v)
+	case Stream[string]:
+		return StringStream(v.Slice())
+	}
+	return any(s).(StringStream)
 }
 
 /* returns the underlying slice */
 func (s StringStream) Slice() []string {
-  return s
+	return s
 }
 
 /* returns identity */
 func (s StringStream) Stream() Stream[string] {
-  return NewStream(s.Slice())
+	return NewStream(s.Slice())
 }
 
 func (s StringStream) MapAny /*[X any]*/ (fna interface {
-  /* func(t T) X */
+	/* func(t T) X */
 },
-  streamTypes ...AnyStream /* Stream[X] */) any {
-  return s.Stream().MapAny(fna,streamTypes...)
+	returnStreamType AnyStream /* Stream[X] */) any {
+	return s.Stream().MapAny(fna, returnStreamType)
 }
 
-func (s StringStream) FlatMapAny /*[X any]*/ (fna interface{/* Stream[X] */}) any {
-  return s.Stream().FlatMapAny(fna)
+func (s StringStream) FlatMapAny /*[X any]*/ (fna interface { /* Stream[X] */
+}) any {
+	return s.Stream().FlatMapAny(fna)
 }

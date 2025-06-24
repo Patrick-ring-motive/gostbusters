@@ -1,49 +1,47 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
+	"io"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
-  "strconv"
-  "io"
-  "unsafe"
-  "cmp"
+	"unsafe"
 )
 
 // Stream example
 type Stream[T any] []T
 
 var streamTypeMap = map[string]interface{}{
-  "int":    Stream[int]{},
-  "int8":   Stream[int8]{},
-  "int16":Stream[int16]{},
-  "int32":Stream[int32]{},
-  "int64":Stream[int64]{},
-  "uint":Stream[uint]{},
-  "uint8":Stream[uint8]{},
-  "uint16":Stream[uint16]{},
-  "uint32":Stream[uint32]{},
-  "uint64":Stream[uint64]{},
-  "uintptr":Stream[uintptr]{},
-  "byte":Stream[byte]{},
-  "rune":Stream[rune]{},
-  "float32":Stream[float32]{},
-  "float64":Stream[float64]{},
-  "complex64":Stream[complex64]{},
-  "complex128":Stream[complex128]{},
-  "string":Stream[string]{},
-  "bool":Stream[bool]{},
-  "error":Stream[error]{},
-  "interface":Stream[interface{}]{},
-  "any":Stream[any]{},
-  "reflect.Value":Stream[reflect.Value]{},
-  "io.Reader":Stream[io.Reader]{},
-  "unsafe.Pointer":Stream[unsafe.Pointer]{},
+	"int":            Stream[int]{},
+	"int8":           Stream[int8]{},
+	"int16":          Stream[int16]{},
+	"int32":          Stream[int32]{},
+	"int64":          Stream[int64]{},
+	"uint":           Stream[uint]{},
+	"uint8":          Stream[uint8]{},
+	"uint16":         Stream[uint16]{},
+	"uint32":         Stream[uint32]{},
+	"uint64":         Stream[uint64]{},
+	"uintptr":        Stream[uintptr]{},
+	"byte":           Stream[byte]{},
+	"rune":           Stream[rune]{},
+	"float32":        Stream[float32]{},
+	"float64":        Stream[float64]{},
+	"complex64":      Stream[complex64]{},
+	"complex128":     Stream[complex128]{},
+	"string":         Stream[string]{},
+	"bool":           Stream[bool]{},
+	"error":          Stream[error]{},
+	"interface":      Stream[interface{}]{},
+	"any":            Stream[any]{},
+	"reflect.Value":  Stream[reflect.Value]{},
+	"io.Reader":      Stream[io.Reader]{},
+	"unsafe.Pointer": Stream[unsafe.Pointer]{},
 }
-
-
 
 /* Create a stream from an slice */
 func NewStream[T any](s Stream[T]) Stream[T] {
@@ -53,16 +51,15 @@ func NewStream[T any](s Stream[T]) Stream[T] {
 /*Example showing how to use and chain stream methods */
 func main() {
 
-  
-	test := []int{1, 2, 3, 4}
+	x := []int{1, 2, 3, 8}
 
-	streamTest := NewStream(test).Map(func(i int) int {
+	streamTest := NewStream(x).Map(func(i int) int {
 		return i + 1
-}).ToStrings().MapAny(strconv.Atoi).(Stream[int]).Reverse()
+	}).ToStrings().MapAny(strconv.Atoi, Stream[int]{}).(Stream[int]).Reverse()
 
 	fmt.Println(streamTest.ToString())
 
-  fmt.Println(len(NewStringStream("cheese")))
+	fmt.Println(len(NewStringStream("cheese")))
 }
 
 /* Filters out elements that result in a false when passed through the predicate */
@@ -76,16 +73,16 @@ func (s Stream[T]) Filter(predicate func(T) bool) Stream[T] {
 	return result
 }
 
-func (s Stream[T]) Reduce(fn func(T,T) T) T {
-  var t T
-  if len(s) == 0{
-    return t
-}
-  t = s[0]
-  for i := 1;i<len(s);i++ {
-    t = fn(t,s[i])
-  }
-  return t
+func (s Stream[T]) Reduce(fn func(T, T) T) T {
+	var t T
+	if len(s) == 0 {
+		return t
+	}
+	t = s[0]
+	for i := 1; i < len(s); i++ {
+		t = fn(t, s[i])
+	}
+	return t
 }
 
 /* Filters out elements that match the passed in element */
@@ -139,6 +136,14 @@ func (s Stream[T]) SubStream(start, end int) Stream[T] {
 	return s.Slice()[start:end]
 }
 
+func (s Stream[T]) First() T {
+	return s.Slice()[0]
+}
+
+func (s Stream[T]) Last() T{
+	return s.Slice()[len(s)-1]
+}
+
 func (s Stream[T]) Map(fn func(T) T) Stream[T] {
 	result := make([]T, len(s))
 	for i, element := range s {
@@ -147,33 +152,40 @@ func (s Stream[T]) Map(fn func(T) T) Stream[T] {
 	return result
 }
 
-/* To stream existing in-place transforms directly */
-func (s Stream[T]) Apply(fn func([]T)) Stream[T] {
-  arr := s.Slice()
-  fn(arr)
-  return arr
+func (s Stream[T]) ForEach(fn func(T)) {
+
+	for _, element := range s {
+		fn(element)
+	}
 }
 
 /* To stream existing in-place transforms directly */
-func (s Stream[T]) Join(delim ...string) string{
-  d:= ""
-  if(len(delim)>0){
-    d = delim[0]
-  }
-  return strings.Join(s.ToStrings().Slice(), d)
+func (s Stream[T]) Apply(fn func([]T)) Stream[T] {
+	arr := s.Slice()
+	fn(arr)
+	return arr
+}
+
+/* To stream existing in-place transforms directly */
+func (s Stream[T]) Join(delim ...string) string {
+	d := ""
+	if len(delim) > 0 {
+		d = delim[0]
+	}
+	return strings.Join(s.ToStrings().Slice(), d)
 }
 
 func (s Stream[T]) FlatMap(fn func(T) []T) Stream[T] {
-	result := make([]T,0, len(s))
+	result := make([]T, 0, len(s))
 	for _, element := range s {
 		result = append(result, fn(element)...)
 	}
 	return result
 }
 
-type AnyStream interface{
-  MapAny(fna interface{}, streamType ...AnyStream)any
-  FlatMapAny(fna interface{})any
+type AnyStream interface {
+	MapAny(function interface{}, returnStreamType AnyStream) AnyStream
+	FlatMapAny(function interface{}) AnyStream
 }
 
 /*
@@ -184,41 +196,32 @@ you can only do this generically with typeless interfaces and reflection
 better to create the typed version for what you want.
 See Stream.ToStrings() for example
 */
-func (s Stream[T]) MapAny /*[X any]*/ (fna interface {
+func (s Stream[T]) MapAny /*[X any]*/ (function interface {
 	/* func(t T) X */
 },
-	streamTypes ...AnyStream /* Stream[X] */) any {
-  streamType := AnyStream(Stream[interface{}]{})
-  if len(streamTypes) > 0{
-    streamType = streamTypes[0]
-  }else{
-    key := fmt.Sprint(reflect.TypeOf(fna).Out(0))
-    val,ok := streamTypeMap[key]
-    if ok{
-      streamType = val.(AnyStream)
-    }
-  }
-  
-	resultType := reflect.TypeOf(fna).Out(0)
+	returnStreamType AnyStream /* Stream[X] */) AnyStream {
+
+	resultType := reflect.TypeOf(function).Out(0)
 	size := len(s)
 	result := reflect.MakeSlice(reflect.SliceOf(resultType), 0, size)
-	fn := reflect.ValueOf(fna)
+	fn := reflect.ValueOf(function)
 	for _, element := range s {
 		result = reflect.Append(result, fn.Call([]reflect.Value{reflect.ValueOf(element)})[0])
 	}
-	return result.Convert(reflect.TypeOf(streamType)).Interface()
+	return result.Convert(reflect.TypeOf(returnStreamType)).Interface().(AnyStream)
 }
 
-func (s Stream[T]) FlatMapAny /*[X any]*/ (fna interface{/* Stream[X] */}) any {
-	streamType := reflect.TypeOf(fna).Out(0)
+func (s Stream[T]) FlatMapAny /*[X any]*/ (function interface { /* func(T)Stream[X] */
+}) AnyStream {
+	streamType := reflect.TypeOf(function).Out(0)
 	resultType := streamType.Elem()
 	size := len(s)
 	result := reflect.MakeSlice(reflect.SliceOf(resultType), 0, size)
-	fn := reflect.ValueOf(fna)
+	fn := reflect.ValueOf(function)
 	for _, element := range s {
 		result = reflect.AppendSlice(result, fn.Call([]reflect.Value{reflect.ValueOf(element)})[0])
 	}
-	return result.Convert(streamType).Interface()
+	return result.Convert(streamType).Interface().(AnyStream)
 }
 
 /* returns the underlying slice */
@@ -228,7 +231,7 @@ func (s Stream[T]) Slice() []T {
 
 /* returns identity */
 func (s Stream[T]) Strea() Stream[T] {
-  return s
+	return s
 }
 
 /*Stringifies individual elements and returns them as a Stream of strings */
@@ -268,61 +271,61 @@ Sorts in ascending order
 type ordered interface{ cmp.Ordered }
 
 func (s Stream[T]) Sort() Stream[T] {
-    
-  switch v := any(s.Slice()).(type) {
-    case []int:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []int8:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []int16:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []int32:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []int64:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []uint:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []uint8:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []uint16:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []uint32:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []uint64:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []uintptr:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []float32:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []float64:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    case []string:
-      slices.Sort(v)
-      return any(v).(Stream[T])
-    default:
-      m := make(map[string]T)
-      st := s.ToStrings()
-      for i, r := range s {
-        m[st[i]] = r
-      }
-      slices.Sort(st)
-      out := make([]T, len(st))
-      for i, r := range st {
-        out[i] = m[r]
-      }
-      return out
-}
+
+	switch v := any(s.Slice()).(type) {
+	case []int:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []int8:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []int16:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []int32:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []int64:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []uint:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []uint8:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []uint16:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []uint32:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []uint64:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []uintptr:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []float32:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []float64:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	case []string:
+		slices.Sort(v)
+		return any(v).(Stream[T])
+	default:
+		m := make(map[string]T)
+		st := s.ToStrings()
+		for i, r := range s {
+			m[st[i]] = r
+		}
+		slices.Sort(st)
+		out := make([]T, len(st))
+		for i, r := range st {
+			out[i] = m[r]
+		}
+		return out
+	}
 }

@@ -1,5 +1,5 @@
 entrypoint = "main.go"
-run = ["go", "run", "."]
+run = ["./run.sh"]
 
 modules = ["go-1.21"]
 
@@ -13,7 +13,7 @@ channel = "stable-24_05"
 requiredFiles = [".replit"]
 
 [deployment]
-build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o main"
-run = "./main"
+build = "./build.sh"
+run = "./run.sh"
 ignorePorts = false
 deploymentTarget = "gce"
