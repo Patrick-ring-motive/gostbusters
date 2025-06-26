@@ -55,7 +55,7 @@ func main() {
 
 	streamTest := NewStream(x).Map(func(i int) int {
 		return i + 1
-	}).ToStrings().MapAny(strconv.Atoi, Stream[int]{}).(Stream[int]).Reverse().ToAny(Stream[int]{}).(Stream[int])
+	}).ToStrings().StrStream().MapAny(strconv.Atoi, Stream[int]{}).(Stream[int]).Reverse().ToAny(Stream[int]{}).(Stream[int])
 
 	fmt.Println(streamTest.ToString())
 
@@ -81,6 +81,19 @@ func (s Stream[T]) Reduce(fn func(T, T) T) T {
 	t = s[0]
 	for i := 1; i < len(s); i++ {
 		t = fn(t, s[i])
+	}
+	return t
+}
+
+func (s Stream[T]) ReduceAny(function interface{}) any {
+	var t any
+	if len(s) == 0 {
+		return t
+	}
+	t = s[0]
+	fn := reflect.ValueOf(function)
+	for _, element := range s {
+		t = fn.Call([]reflect.Value{reflect.ValueOf(t), reflect.ValueOf(element)})[0].Interface()
 	}
 	return t
 }
@@ -167,12 +180,12 @@ func (s Stream[T]) Apply(fn func([]T)) Stream[T] {
 }
 
 /* To stream existing in-place transforms directly */
-func (s Stream[T]) Join(delim ...string) string {
+func (s Stream[T]) Join(delim ...string) String {
 	d := ""
 	if len(delim) > 0 {
 		d = delim[0]
 	}
-	return strings.Join(s.ToStrings().Slice(), d)
+	return String(strings.Join(s.ToStrings().StrSlice(), d))
 }
 
 func (s Stream[T]) FlatMap(fn func(T) []T) Stream[T] {
@@ -244,8 +257,8 @@ func (s Stream[T]) Stream() Stream[T] {
 }
 
 /*Stringifies individual elements and returns them as a Stream of strings */
-func (ss Stream[T]) ToStrings() Stream[string] {
-	out := make([]string, len(ss))
+func (ss Stream[T]) ToStrings() StringStream {
+	out := make([]String, len(ss))
 	for i, s := range ss {
 		str := ""
 		bits, err := json.Marshal(s)
@@ -254,13 +267,13 @@ func (ss Stream[T]) ToStrings() Stream[string] {
 		} else {
 			str = string(bits)
 		}
-		out[i] = strings.ReplaceAll(str, "\"", "")
+		out[i] = String(strings.ReplaceAll(str, "\"", ""))
 	}
 	return out
 }
 
 /* Stringifies the whole stream. Attempts with JSON and fallsback to verbose print */
-func (s Stream[T]) ToString() string {
+func (s Stream[T]) ToString() String {
 	str := ""
 	bits, err := json.Marshal(s)
 	if err != nil {
@@ -268,7 +281,7 @@ func (s Stream[T]) ToString() string {
 	} else {
 		str = string(bits)
 	}
-	return strings.ReplaceAll(str, "\"", "")
+	return String(strings.ReplaceAll(str, "\"", ""))
 }
 
 /*
@@ -328,12 +341,12 @@ func (s Stream[T]) Sort() Stream[T] {
 		m := make(map[string]T)
 		st := s.ToStrings()
 		for i, r := range s {
-			m[st[i]] = r
+			m[string(st[i])] = r
 		}
 		slices.Sort(st)
 		out := make([]T, len(st))
 		for i, r := range st {
-			out[i] = m[r]
+			out[i] = m[string(r)]
 		}
 		return out
 	}
