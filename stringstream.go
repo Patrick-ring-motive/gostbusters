@@ -9,6 +9,22 @@ func (s String) Str() string {
 	return string(s)
 }
 
+func (s String) DoSplit1(fn func(string) []string) StringStream {
+	return stringsToStrings(fn(string(s)))
+}
+
+func (s String) DoSplit2(fn func(string, string) []string, str String) StringStream {
+	return stringsToStrings(fn(string(s), string(str)))
+}
+
+func (s String) Split(delim String) StringStream {
+	return stringsToStrings(strings.Split(string(s), string(delim)))
+}
+
+func (s String) SplitAfter(delim String) StringStream {
+	return stringsToStrings(strings.SplitAfter(string(s), string(delim)))
+}
+
 func stringsToStrings(s []string) []String {
 	out := make([]String, len(s))
 	for i, r := range s {

@@ -9,39 +9,12 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unsafe"
 )
 
 // Stream example
 type Stream[T any] []T
 
-var streamTypeMap = map[string]interface{}{
-	"int":            Stream[int]{},
-	"int8":           Stream[int8]{},
-	"int16":          Stream[int16]{},
-	"int32":          Stream[int32]{},
-	"int64":          Stream[int64]{},
-	"uint":           Stream[uint]{},
-	"uint8":          Stream[uint8]{},
-	"uint16":         Stream[uint16]{},
-	"uint32":         Stream[uint32]{},
-	"uint64":         Stream[uint64]{},
-	"uintptr":        Stream[uintptr]{},
-	"byte":           Stream[byte]{},
-	"rune":           Stream[rune]{},
-	"float32":        Stream[float32]{},
-	"float64":        Stream[float64]{},
-	"complex64":      Stream[complex64]{},
-	"complex128":     Stream[complex128]{},
-	"string":         Stream[string]{},
-	"bool":           Stream[bool]{},
-	"error":          Stream[error]{},
-	"interface":      Stream[interface{}]{},
-	"any":            Stream[any]{},
-	"reflect.Value":  Stream[reflect.Value]{},
-	"io.Reader":      Stream[io.Reader]{},
-	"unsafe.Pointer": Stream[unsafe.Pointer]{},
-}
+
 
 /* Create a stream from an slice */
 func NewStream[T any](s Stream[T]) Stream[T] {
